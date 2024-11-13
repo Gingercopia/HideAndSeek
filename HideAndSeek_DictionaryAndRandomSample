@@ -8,40 +8,53 @@ import random
 
 ######################    PLAYER INFORMATION ################################
 
-#PLAYER INPUT for name and skill level
-print('What is your name Traveler?')
-playerName = input()
-print('What is your skill level for Hiding')
-pHideSkill = int(input())
+def validatePName():
+    while True:
+        playerName = input('What is your name Traveler? ')
+        if playerName.strip(): #strip removes white space at begin or end of text
+            return playerName
+        else:
+            print("Invalid input. Please enter a valid name")
+playerName = validatePName()
+
+def validatePSkill():
+    while True:
+        print('What is your skill level for Hiding (0-20)?')
+        try:
+            skill = int(input())
+            if 0<= skill <= 20:
+                return skill
+            else:
+                print('Please enter a number between 0 and 20.')
+        except ValueError:
+            print('Invalid input. Please enter an integer between 0 and 20.')
+pHideSkill = validatePSkill()
 
 
-######### DETERMINE MODIFIER FOR HIDING RANGE ######################
-def hideModCalculation():
-    
-    if pHideSkill < 0:
-        return 0 #RETURN SAVES VALUE FROM LOCAL TO GLOBAL SCOPE
-    elif pHideSkill <=5: 
-        return 1
-    elif pHideSkill <=10: 
-        return 2
-    elif pHideSkill <= 15:
-        return 3
-    elif pHideSkill <=20:
-        return 4
-    else:
-        print('You have entered a number above 20, please try again')
+
+
+######### DETERMINE MODIFIER FOR NUMBER OF SPACES FOR HIDING ######################
+def hideModCalculation(skill):
+    if skill < 0:
         return 0
+    elif skill <= 5:
+        return 1
+    elif skill <= 10:
+        return 2
+    elif skill <= 15:
+        return 3
+    elif skill <= 20:
+        return 4
 
-pHideModifier = hideModCalculation() #RETURN VALUE PASSES AS ARGUMENT AND IS STORED
+pHideModifier = hideModCalculation(pHideSkill)  # Return value passes as argument and is stored
 print('Your skill modifier is ' + str(pHideModifier))
-
 
 
 
 ###########################  DICE ROLLING ##################################
 
 input('Press Enter to roll your D20 skill check') #HIT ENTER TO ENACT BELOW 
-pHideRoll = int(random.randint(1,20)) #CHANGE NUMBER HERE TO TEST 1,20,RANDOM...
+pHideRoll = int(random.randint(1,21)) #CHANGE NUMBER HERE TO TEST 1,21,RANDOM...
 print('The number rolled is ' + str(pHideRoll))
 
 
@@ -66,25 +79,30 @@ def hideSkillCheck(): #PROVIDE INSIGHT TO SPACES CAN HIDE IN
     else:
         print(playerName + ' will have ' + str(pHideModifier) + ' extra spaces to hide in.')
         
-hideSkillCheck()#RUNS FX and STORES RESULT TO TERMINAL
+hideSkillCheck()
 
 
 def playerSpacesAndLocation(): #CREATES RANGE (HIDING SPACES) AND SPOT(LOCATION) OF YOU BASED ON RANDOM ROLL IN RANGE
                                 # MONSTER PULLS THEIR GUESSING RANGE FROM THIS FUNCTION
     if naturalTwenty:
-        pHidingRange = (1,31)
-        #USE A TUPPLE (*) TO PULL RANGE FROM 
-        pHidingSpot = random.randint (*pHidingRange) 
-
+        pHidingRange = (1,31)  #range can use  
     elif naturalOne:
-        pHidingRange = (1,11)
-        pHidingSpot = random.randint(*pHidingRange)
-
+        pHidingRange = (1,11)  
     else:
         pHidingRange = (1,21+pHideModifier)
-        pHidingSpot = random.randint(*pHidingRange)
 
-    return pHidingSpot, pHidingRange # STORES VALUES OF EACH TO BE CALLED IN GLOBAL SCOPE
+    print(f"You can choose a hiding spot within the range of {pHidingRange[0]} and {pHidingRange[-1]-1}.") #first index [0] last [-1 OR 2]  
+
+    while True:
+        try:
+            pHidingSpot = int(input(f"Enter your hiding spot (between {pHidingRange[0]} and {pHidingRange[-1]-1}): "))
+            if pHidingSpot in range(*pHidingRange):
+                break
+            else:
+                print(f"Invalid spot. Please choose a number between {pHidingRange[0]} and {pHidingRange[-1]-1}")
+        except ValueError:
+            print(f"Invalid input. Please enter a number between {pHidingRange[0]} and {pHidingRange[1] - 1}.")               
+    return pHidingSpot, pHidingRange #return values so can use at global scope
 
 pHidingSpot, pHidingRange = playerSpacesAndLocation() #UNPACKS TUPPLE AND ASSIGNS VALUES TO GLOBAL VAR
 
@@ -120,7 +138,7 @@ randomMonster = random.choice(list(monsterStat.items()))
 #var key, var value = var name with tuple (key val pair)
 monsterType, monsterSpeed = randomMonster
 
-#monsterName = 'Slimer'
+
 print('A '+ str(monsterType) +' has sensed your presence and is ready to find you. If you are able to stay hidden from them for 6 turns you win' + '. A '+str(monsterType) + ' can check '+ str(monsterSpeed)+ ' spaces each turn!')
 
 input('press enter to start the hunt')
@@ -130,15 +148,25 @@ input('press enter to start the hunt')
 
 ######### DETERMINE IF SEEKER FOUND HIDER
 def playerFound(): 
-    for seek in range(6): #LOOP THROUGH CODE x6
-        seekRolls = random.sample(range(*pHidingRange), monsterSpeed) # RANDOM ROLL OCCURS - based on seekRange 
-        print(f'{monsterType} is seeking....This is attempt number {seek + 1})')
+    ###Set turn limit to 6. Check hiding spots
+    for seek in range(6): 
+        #Speed > 2: check non-unique spots (dumb monsters)
+        if monsterSpeed > 2:
+            seekRolls = random.choices(range(*pHidingRange), k=(monsterSpeed)) #choices - selects multiple non-unique values
+        
+        #Speed <=2: check unique spots (cunning creatures)
+        else:            
+            seekRolls = random.sample(range(*pHidingRange), monsterSpeed) # sample - selects only unique values not used            
+        
+        #Show what attempt monster is on starting at 1 [0]+1 = 1
+        print(f'{monsterType} is seeking....This is attempt number {seek + 1})') #seek + 1 since starts at 0
+            #Show spaces being checked
         print(f'Monster checks places: {seekRolls}')
-
+        
         if pHidingSpot in seekRolls:
             print(f'You\'ve been found in spot {pHidingSpot}. It took {seek + 1} attempts to find you.')
             print('You are mine now!!!')
-            return
+            return #ENDS FUNCTION and skips to remainingAttempts. RETURN makes so don't need ELSE statement!
         remainingAttempts = 6 - (seek+1)
         print(f'Come Out Come Out Wherever You Are! {remainingAttempts} more chances remaining.')
         input("Press Enter to start the next turn")
